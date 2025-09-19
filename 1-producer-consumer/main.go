@@ -1,48 +1,25 @@
-//////////////////////////////////////////////////////////////////////
-//
-// Given is a producer-consumer scenario, where a producer reads in
-// tweets from a mockstream and a consumer is processing the
-// data. Your task is to change the code so that the producer as well
-// as the consumer can run concurrently
-//
-
 package main
 
-import (
-	"fmt"
-	"time"
-)
+import "fmt"
 
-func producer(stream Stream) (tweets []*Tweet) {
-	for {
-		tweet, err := stream.Next()
-		if err == ErrEOF {
-			return tweets
-		}
-
-		tweets = append(tweets, tweet)
-	}
-}
-
-func consumer(tweets []*Tweet) {
-	for _, t := range tweets {
-		if t.IsTalkingAboutGo() {
-			fmt.Println(t.Username, "\ttweets about golang")
-		} else {
-			fmt.Println(t.Username, "\tdoes not tweet about golang")
-		}
-	}
+// Processor defines the interface for running a tweet processing example.
+// It provides a common contract for different processing strategies.
+type Processor interface {
+	Process()
 }
 
 func main() {
-	start := time.Now()
-	stream := GetMockStream()
+	// A map holds our different processing strategies, keyed by a descriptive name.
+	// This makes it easy to add new strategies in the future.
+	processors := map[string]Processor{
+		"Sequential": &SequentialProcessor{},
+		"Concurrent": &ConcurrentProcessor{},
+	}
 
-	// Producer
-	tweets := producer(stream)
-
-	// Consumer
-	consumer(tweets)
-
-	fmt.Printf("Process took %s\n", time.Since(start))
+	// Iterate through and run each processor, printing its name first.
+	for name, p := range processors {
+		fmt.Printf("--- Running %s Processor ---\n", name)
+		p.Process()
+		fmt.Println()
+	}
 }
