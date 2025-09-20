@@ -12,7 +12,8 @@ import (
 )
 
 // MockDB used to simulate a database model
-type MockDB struct{
+type MockDB struct {
+	// A counter to keep track of how many times the database's Get method has been called.
 	Calls int32
 }
 
@@ -20,6 +21,8 @@ type MockDB struct{
 func (db *MockDB) Get(key string) (string, error) {
 	d, _ := time.ParseDuration("20ms")
 	time.Sleep(d)
+	// It uses atomic.AddInt32 instead of a simple db.Calls++ because the mock server calls this method from many goroutines at once.
+	// The atomic operation guarantees that the counter is incremented correctly without causing a data race.
 	atomic.AddInt32(&db.Calls, 1)
 	return key, nil
 }
