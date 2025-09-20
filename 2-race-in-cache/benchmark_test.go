@@ -12,8 +12,9 @@ import (
 func BenchmarkOptimized(b *testing.B) {
 	loader := &Loader{DB: GetMockDB()}
 	cache := &SafeLRUCache{
-		load:  loader.Load,
-		cache: make(map[string]*list.Element),
+		load:    loader.Load,
+		cache:   make(map[string]*list.Element),
+		loading: make(map[string]*entry),
 	}
 
 	benchmarkCache(b, cache, "optimized")
