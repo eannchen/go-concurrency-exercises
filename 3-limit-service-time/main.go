@@ -10,21 +10,17 @@
 
 package main
 
-// User defines the UserModel. Use this to check whether a User is a
-// Premium user or not
-type User struct {
-	ID        int
-	IsPremium bool
-	TimeUsed  int64 // in seconds
-}
-
-// HandleRequest runs the processes requested by users. Returns false
-// if process had to be killed
-func HandleRequest(process func(), u *User) bool {
-	process()
-	return true
-}
+import "fmt"
 
 func main() {
-	RunMockServer()
+	handlers := map[string]RequestHandler{
+		"Beginner": NewBeginnerHandler(),
+		"Advanced": NewAdvancedHandler(),
+	}
+
+	for name, handler := range handlers {
+		fmt.Printf("--- Running Mock Server with %s Handler ---\n", name)
+		RunMockServer(handler)
+		fmt.Println()
+	}
 }

@@ -1,7 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 //
 // DO NOT EDIT THIS PART
-// Your task is to edit `main.go`
 //
 
 package main
@@ -12,42 +11,50 @@ import (
 	"time"
 )
 
-var wg sync.WaitGroup
+// RunMockServer simulates user interactions with the service.
+// It now takes a handler to test a specific implementation.
+func RunMockServer(handler RequestHandler) {
+	var wg sync.WaitGroup
+	u1 := User{ID: 1, IsPremium: false} // Free User
+	u2 := User{ID: 2, IsPremium: true}  // Premium User
 
-// RunMockServer pretends to be a video processing service. It
-// simulates user interacting with the Server.
-func RunMockServer() {
-	u1 := User{ID: 0, IsPremium: false}
-	u2 := User{ID: 1, IsPremium: true}
+	requests := []struct {
+		pid     int
+		process func()
+		user    *User
+		delay   time.Duration
+	}{
+		{1, shortProcess, &u1, 1 * time.Second}, // u1 uses 6s. Total: 6s.
+		{2, longProcess, &u2, 2 * time.Second},  // u2 is premium, should pass.
+		{3, shortProcess, &u1, 1 * time.Second}, // u1 uses another 6s. Total: 12s. Should be killed by advanced handler.
+		{4, longProcess, &u1, 0 * time.Second},  // u1 has no time left. Should be killed. Also >10s, killed by beginner.
+		{5, shortProcess, &u2, 0 * time.Second}, // u2 is premium, should pass.
+	}
 
-	wg.Add(5)
+	wg.Add(len(requests))
 
-	go createMockRequest(1, shortProcess, &u1)
-	time.Sleep(1 * time.Second)
-
-	go createMockRequest(2, longProcess, &u2)
-	time.Sleep(2 * time.Second)
-
-	go createMockRequest(3, shortProcess, &u1)
-	time.Sleep(1 * time.Second)
-
-	go createMockRequest(4, longProcess, &u1)
-	go createMockRequest(5, shortProcess, &u2)
+	for _, req := range requests {
+		// create a new variable for the goroutine
+		r := req
+		go func() {
+			defer wg.Done()
+			createMockRequest(handler, r.pid, r.process, r.user)
+		}()
+		time.Sleep(r.delay)
+	}
 
 	wg.Wait()
 }
 
-func createMockRequest(pid int, fn func(), u *User) {
+func createMockRequest(handler RequestHandler, pid int, fn func(), u *User) {
 	fmt.Println("UserID:", u.ID, "\tProcess", pid, "started.")
-	res := HandleRequest(fn, u)
+	res := handler.HandleRequest(fn, u)
 
 	if res {
 		fmt.Println("UserID:", u.ID, "\tProcess", pid, "done.")
 	} else {
 		fmt.Println("UserID:", u.ID, "\tProcess", pid, "killed. (No quota left)")
 	}
-
-	wg.Done()
 }
 
 func shortProcess() {
